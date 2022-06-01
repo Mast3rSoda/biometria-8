@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -26,13 +27,17 @@ namespace biometria_8
     {
 
         Bitmap? sourceImage = null;
-        Bitmap? imageToEdit = null;
+        Bitmap? imageTemplate = null;
+        Bitmap? imageFinger = null;
+
+        Dictionary<(int, int), (int, int)> templateValues = new Dictionary<(int, int), (int, int)>();
+        Dictionary<(int, int), (int, int)> fingerValues = new Dictionary<(int, int), (int, int)>();
 
         public MainWindow()
         {
             InitializeComponent();
         }
-        private void OpenFile(object sender, RoutedEventArgs e)
+        private void OpenFileTemplate(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Filter = "Image files (*.jpg;*.png)|*.jpg;*.png|All files (*.*)|*.*";
@@ -40,8 +45,32 @@ namespace biometria_8
             if (openFileDialog.ShowDialog() == true)
             {
                 string fileName = openFileDialog.FileName;
-                imageToEdit = this.sourceImage = new Bitmap($"{fileName}");
-                Img.Source = ImageSourceFromBitmap(this.sourceImage);
+                imageTemplate = this.sourceImage = new Bitmap($"{fileName}");
+                ImgTemplate.Source = ImageSourceFromBitmap(this.sourceImage);
+
+            }
+            if (sourceImage == null)
+            {
+                MessageBox.Show("You haven't uploaded any files", "Image error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            Bitmap bitmap = new Bitmap(this.sourceImage.Width, this.sourceImage.Height);
+            bitmap = (Bitmap)this.imageTemplate.Clone();
+            (Bitmap bmp, templateValues) = Algorithm.GetMinutiae(bitmap);
+            ImgCalcTemplate.Source = ImageSourceFromBitmap(bmp);
+        }
+        [return: MarshalAs(UnmanagedType.Bool)]
+
+        private void OpenFileFinger(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Filter = "Image files (*.jpg;*.png)|*.jpg;*.png|All files (*.*)|*.*";
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                string fileName = openFileDialog.FileName;
+                imageFinger = new Bitmap($"{fileName}");
+                ImgFinger.Source = ImageSourceFromBitmap(imageFinger);
             }
         }
         [DllImport("gdi32.dll", EntryPoint = "DeleteObject")]
@@ -59,16 +88,26 @@ namespace biometria_8
             finally { DeleteObject(handle); }
         }
 
-        private void Click(object sender, RoutedEventArgs e)
+        private void CheckFinger(object sender, RoutedEventArgs e)
         {
-            if (sourceImage == null)
+            if (ImgFinger == null)
             {
                 MessageBox.Show("You haven't uploaded any files", "Image error", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            Bitmap bitmap = new Bitmap(this.sourceImage.Width, this.sourceImage.Height);
-            bitmap = (Bitmap)this.imageToEdit.Clone();
-            Img.Source = ImageSourceFromBitmap(Algorithm.GetMinutiae(bitmap));
+            Bitmap bitmap = new Bitmap(this.imageFinger.Width, this.imageFinger.Height);
+            bitmap = (Bitmap)this.imageFinger.Clone();
+            (Bitmap bmp, fingerValues) = Algorithm.GetMinutiae(bitmap);
+            ImgCalcFinger.Source = ImageSourceFromBitmap(bmp);
+
+
+            if (Algorithm.Submit(templateValues, fingerValues))
+                SubmitBox.Text = "Is Gucci!";
+            else
+                SubmitBox.Text = "Is Bad!";
+
+
+
         }
     }
 }

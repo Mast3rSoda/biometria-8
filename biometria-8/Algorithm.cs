@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace biometria_8
 {
@@ -145,7 +146,7 @@ namespace biometria_8
         #endregion
 
 
-        public static Bitmap GetMinutiae(Bitmap bmp)
+        public static (Bitmap, Dictionary<(int, int), (int, int)>) GetMinutiae(Bitmap bmp)
         {
             BitmapData data = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
             (byte[] vs, byte[,] grayS) = KMM(data);
@@ -173,6 +174,9 @@ namespace biometria_8
                                     }
                                 }
                         }
+                        if (count == 0 || count == 4)
+                            bruh.Add((y, x), (count, int.MinValue));
+
                         if (count != 0 && count != 4 && count != 2)
                         {
                             bruh.Add((y, x), (count, int.MinValue));
@@ -205,28 +209,28 @@ namespace biometria_8
                                                             switch (y - z, x - i)
                                                             {
                                                                 case (-1, -1):
-                                                                    bruh[(y, x)] = (bruh[(y, x)].Item1, 315);
+                                                                    bruh[(y, x)] = (bruh[(y, x)].Item2, 315);
                                                                     break;
                                                                 case (-1, 0):
-                                                                    bruh[(y, x)] = (bruh[(y, x)].Item1, 360);
+                                                                    bruh[(y, x)] = (bruh[(y, x)].Item2, 360);
                                                                     break;
                                                                 case (-1, 1):
-                                                                    bruh[(y, x)] = (bruh[(y, x)].Item1, 45);
+                                                                    bruh[(y, x)] = (bruh[(y, x)].Item2, 45);
                                                                     break;
                                                                 case (0, -1):
-                                                                    bruh[(y, x)] = (bruh[(y, x)].Item1, 270);
+                                                                    bruh[(y, x)] = (bruh[(y, x)].Item2, 270);
                                                                     break;
                                                                 case (0, 1):
-                                                                    bruh[(y, x)] = (bruh[(y, x)].Item1, 90);
+                                                                    bruh[(y, x)] = (bruh[(y, x)].Item2, 90);
                                                                     break;
                                                                 case (1, -1):
-                                                                    bruh[(y, x)] = (bruh[(y, x)].Item1, 225);
+                                                                    bruh[(y, x)] = (bruh[(y, x)].Item2, 225);
                                                                     break;
                                                                 case (1, 0):
-                                                                    bruh[(y, x)] = (bruh[(y, x)].Item1, 180);
+                                                                    bruh[(y, x)] = (bruh[(y, x)].Item2, 180);
                                                                     break;
                                                                 case (1, 1):
-                                                                    bruh[(y, x)] = (bruh[(y, x)].Item1, 135);
+                                                                    bruh[(y, x)] = (bruh[(y, x)].Item2, 135);
                                                                     break;
                                                             }
                                                             break;
@@ -246,11 +250,68 @@ namespace biometria_8
                         }
                     }
 
-
                 }
             Marshal.Copy(vs, 0, data.Scan0, vs.Length);
             bmp.UnlockBits(data);
-            return bmp;
+            return (bmp, bruh);
+        }
+
+        public static bool Submit(Dictionary<(int, int), (int, int)> templateValues, Dictionary<(int, int), (int, int)> fingerValues)
+        {
+            int[,] vs = new int[templateValues.Count - 1, 2];
+            //Gotta calculate the radial values
+            int i = 0;
+            (int, int, int) previous = (0, 0, 0);
+            foreach (var value in templateValues)
+            {
+                if (i != 0)
+                {
+                    vs[i - 1, 0] = (int)Math.Sqrt(Math.Pow((double)(previous.Item1
+                                                               - (double)value.Key.Item1), 2) +
+                                                               Math.Pow((double)(previous.Item2
+                                                               - (double)value.Key.Item2), 2));
+                    vs[i - 1, 1] = previous.Item3 - value.Value.Item2;
+
+                }
+                ++i;
+                previous = (value.Key.Item1, value.Key.Item2, value.Value.Item2);
+            }
+            int count = 0;
+            for (int y = 0; y < templateValues.Count - 1; y++)
+            {
+                i = 0;
+                foreach (var value2 in fingerValues)
+                {
+                    bool f = false;
+                    int x = 0;
+                    foreach (var value3 in fingerValues)
+                    {
+                        if (x > i)
+                        {
+                            int d = (int)Math.Sqrt(Math.Pow((double)(value2.Key.Item1)
+                                                               - (double)(value3.Key.Item1), 2) +
+                                                               Math.Pow((double)(value2.Key.Item2)
+                                                               - (double)(value3.Key.Item2), 2));
+                            int r = value3.Value.Item2 - value2.Value.Item2;
+
+                            if (d - vs[y, 0] <= 2 && d - vs[y, 0] >= -2 && r - vs[y, 1] == 0)
+                            {
+                                ++count;
+                                f = true;
+                                break;
+                            }
+                        }
+                        
+                        ++x;
+                    }
+                    if (f)
+                        break;
+                    ++i;
+                }
+            }
+            if (count > templateValues.Count * 0.97)
+                return true;
+            return false;
         }
     }
 }

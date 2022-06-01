@@ -10,7 +10,8 @@
         <DockPanel>
             <Menu DockPanel.Dock="Top">
                 <MenuItem Header="_File">
-                    <MenuItem Header="_Open" Click="OpenFile" />
+                    <MenuItem Header="_OpenTemplate" Click="OpenFileTemplate" />
+                    <MenuItem Header="_OpenFinger" Click="OpenFileFinger" />
                 </MenuItem>
             </Menu>
             <Grid>
@@ -18,9 +19,24 @@
                     <ColumnDefinition Width="9*"/>
                     <ColumnDefinition Width="1*"/>
                 </Grid.ColumnDefinitions>
-                <Image Name="Img"/>
+                <Grid Grid.Column="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Image Grid.Column="0" Grid.Row="0" Name="ImgTemplate"/>
+                    <Image Grid.Column="0" Grid.Row="1" Name="ImgCalcTemplate"/>
+                    <Image Grid.Column="1" Grid.Row="0" Name="ImgFinger"/>
+                    <Image Grid.Column="1" Grid.Row="1" Name="ImgCalcFinger"/>
+
+                </Grid>
                 <StackPanel Grid.Column="1">
-                    <Button Name="KMM" Content="🗿" Click="Click"></Button>
+                    <Button Name="CheckFinger2" Content="🗿🗿" Click="CheckFinger"></Button>
+                    <TextBox Name="SubmitBox" IsEnabled="False"/>
                 </StackPanel>
             </Grid>
         </DockPanel>
