@@ -209,28 +209,28 @@ namespace biometria_8
                                                             switch (y - z, x - i)
                                                             {
                                                                 case (-1, -1):
-                                                                    bruh[(y, x)] = (bruh[(y, x)].Item2, 315);
+                                                                    bruh[(y, x)] = (bruh[(y, x)].Item1, 315);
                                                                     break;
                                                                 case (-1, 0):
-                                                                    bruh[(y, x)] = (bruh[(y, x)].Item2, 360);
+                                                                    bruh[(y, x)] = (bruh[(y, x)].Item1, 360);
                                                                     break;
                                                                 case (-1, 1):
-                                                                    bruh[(y, x)] = (bruh[(y, x)].Item2, 45);
+                                                                    bruh[(y, x)] = (bruh[(y, x)].Item1, 45);
                                                                     break;
                                                                 case (0, -1):
-                                                                    bruh[(y, x)] = (bruh[(y, x)].Item2, 270);
+                                                                    bruh[(y, x)] = (bruh[(y, x)].Item1, 270);
                                                                     break;
                                                                 case (0, 1):
-                                                                    bruh[(y, x)] = (bruh[(y, x)].Item2, 90);
+                                                                    bruh[(y, x)] = (bruh[(y, x)].Item1, 90);
                                                                     break;
                                                                 case (1, -1):
-                                                                    bruh[(y, x)] = (bruh[(y, x)].Item2, 225);
+                                                                    bruh[(y, x)] = (bruh[(y, x)].Item1, 225);
                                                                     break;
                                                                 case (1, 0):
-                                                                    bruh[(y, x)] = (bruh[(y, x)].Item2, 180);
+                                                                    bruh[(y, x)] = (bruh[(y, x)].Item1, 180);
                                                                     break;
                                                                 case (1, 1):
-                                                                    bruh[(y, x)] = (bruh[(y, x)].Item2, 135);
+                                                                    bruh[(y, x)] = (bruh[(y, x)].Item1, 135);
                                                                     break;
                                                             }
                                                             break;
@@ -301,7 +301,7 @@ namespace biometria_8
                                 break;
                             }
                         }
-                        
+
                         ++x;
                     }
                     if (f)
@@ -312,6 +312,67 @@ namespace biometria_8
             if (count > templateValues.Count * 0.97)
                 return true;
             return false;
+        }
+
+        public static Bitmap GenerateImage(int width, int height, Dictionary<(int, int), (int, int)> templateValues)
+        {
+            Bitmap bmp = new Bitmap(width, height);
+            BitmapData data = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
+
+            byte[] vs = new byte[data.Height * data.Stride];
+            Array.Fill(vs, byte.MaxValue);
+            foreach (var value in templateValues)
+            {
+                vs[value.Key.Item1 * data.Stride + value.Key.Item2 * 3] =
+                vs[value.Key.Item1 * data.Stride + value.Key.Item2 * 3 + 1] =
+                vs[value.Key.Item1 * data.Stride + value.Key.Item2 * 3 + 2] = byte.MinValue;
+
+                // 315   360    45
+                // 270          90
+                // 225   180   135
+
+                // 0 - Isolated point - done
+                // 1 - Ridge ending point - opposite to angle
+                // 3 - Bifurcation point - opposite to angle as well? i think so..
+                // 4 - Crossing point - 4 way
+
+                (int, int) i = (0, 0);
+                switch (value.Value.Item2)
+                {
+                    case 45:
+                        i = (1, -1);
+                        break;
+                    case 90:
+                        i = (0, -1);
+                        break;
+                    case 135:
+                        i = (-1, -1);
+                        break;
+                    case 180:
+                        i = (-1, 0);
+                        break;
+                    case 225:
+                        i = (-1, 1);
+                        break;
+                    case 270:
+                        i = (0, 1);
+                        break;
+                    case 315:
+                        i = (1, 1);
+                        break;
+                    case 360:
+                        i = (1, 0);
+                        break;
+                }
+                vs[(value.Key.Item1 + i.Item1) * data.Stride + (value.Key.Item2 + i.Item2) * 3] =
+                vs[(value.Key.Item1 + i.Item1) * data.Stride + (value.Key.Item2 + i.Item2) * 3 + 1] =
+                vs[(value.Key.Item1 + i.Item1) * data.Stride + (value.Key.Item2 + i.Item2) * 3 + 2] = byte.MinValue;
+            }
+
+            Marshal.Copy(vs, 0, data.Scan0, vs.Length);
+            bmp.UnlockBits(data);
+
+            return bmp;
         }
     }
 }

@@ -37,6 +37,7 @@
                 <StackPanel Grid.Column="1">
                     <Button Name="CheckFinger2" Content="🗿🗿" Click="CheckFinger"></Button>
                     <TextBox Name="SubmitBox" IsEnabled="False"/>
+                    <Button Name="GenerateImage" Content="🗿🗿🗿🗿" Click="GenerateImage_Click"></Button>
                 </StackPanel>
             </Grid>
         </DockPanel>

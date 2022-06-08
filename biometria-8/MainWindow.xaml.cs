@@ -109,5 +109,17 @@ namespace biometria_8
 
 
         }
+
+        private void GenerateImage_Click(object sender, RoutedEventArgs e)
+        {
+            if (imageTemplate == null)
+            {
+                MessageBox.Show("You haven't uploaded any files", "Image error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            imageFinger = Algorithm.GenerateImage(imageTemplate.Width, imageTemplate.Height, templateValues);
+            ImgFinger.Source = ImageSourceFromBitmap(imageFinger);
+
+        }
     }
 }
